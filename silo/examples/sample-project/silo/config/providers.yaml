@@ -1,0 +1,37 @@
+# SILO per-role AI provider routing. Each role can point at a different provider account,
+# base URL, model, and API key — the database agent and the auth agent don't have to share
+# a vendor. Values in ${VAR_NAME} form are resolved from the environment at load time
+# (silo/src/providerConfig.ts); an unset variable is treated as "not provided" and the
+# Codex CLI's own defaults apply for that field.
+providers:
+  database:
+    baseUrl: ${DATABASE_PROVIDER_BASE_URL}
+    apiKey: ${DATABASE_PROVIDER_API_KEY}
+    model: ${DATABASE_PROVIDER_MODEL}
+
+  auth:
+    baseUrl: ${AUTH_PROVIDER_BASE_URL}
+    apiKey: ${AUTH_PROVIDER_API_KEY}
+    model: ${AUTH_PROVIDER_MODEL}
+    modelReasoningEffort: high
+
+  frontend:
+    baseUrl: ${FRONTEND_PROVIDER_BASE_URL}
+    apiKey: ${FRONTEND_PROVIDER_API_KEY}
+    model: ${FRONTEND_PROVIDER_MODEL}
+
+  billing:
+    baseUrl: ${BILLING_PROVIDER_BASE_URL}
+    apiKey: ${BILLING_PROVIDER_API_KEY}
+    model: ${BILLING_PROVIDER_MODEL}
+    modelReasoningEffort: high
+
+  intelligence:
+    baseUrl: ${INTELLIGENCE_PROVIDER_BASE_URL}
+    apiKey: ${INTELLIGENCE_PROVIDER_API_KEY}
+    model: ${INTELLIGENCE_PROVIDER_MODEL}
+
+  infrastructure:
+    baseUrl: ${INFRASTRUCTURE_PROVIDER_BASE_URL}
+    apiKey: ${INFRASTRUCTURE_PROVIDER_API_KEY}
+    model: ${INFRASTRUCTURE_PROVIDER_MODEL}

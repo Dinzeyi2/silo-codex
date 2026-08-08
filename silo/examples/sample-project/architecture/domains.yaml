@@ -1,0 +1,44 @@
+# Every role from config/ownership.yaml must have exactly one entry here.
+# `dependsOn` records which other domains this one relies on. `exposes` lists the
+# contract ids (matching files under architecture/api|events|types) this domain
+# is the source of truth for.
+domains:
+  database:
+    description: Owns the schema, migrations, and persisted data model.
+    dependsOn: []
+    exposes:
+      - "type:user"
+      - "type:subscription"
+
+  auth:
+    description: Owns authentication, session/token issuance, and access control.
+    dependsOn:
+      - database
+    exposes:
+      - "api:auth"
+      - "event:user-created"
+
+  billing:
+    description: Owns subscription plans, payment processing, and invoicing.
+    dependsOn:
+      - database
+      - auth
+    exposes:
+      - "api:billing"
+      - "event:subscription-changed"
+
+  frontend:
+    description: Owns the web and mobile UI. Consumes auth and billing contracts; never their implementations.
+    dependsOn:
+      - auth
+      - billing
+
+  intelligence:
+    description: Owns usage analytics and ML-driven features.
+    dependsOn:
+      - database
+      - billing
+
+  infrastructure:
+    description: Owns deployment, CI/CD, and environment configuration for every domain.
+    dependsOn: []

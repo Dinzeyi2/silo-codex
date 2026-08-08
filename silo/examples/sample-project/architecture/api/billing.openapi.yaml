@@ -1,0 +1,39 @@
+openapi: 3.0.3
+info:
+  title: Billing API
+  version: 1.0.0
+  description: Owned by the billing domain. Frontend consumes this; only billing may implement it.
+paths:
+  /billing/subscription:
+    get:
+      summary: Get the caller's current subscription.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current subscription.
+          content:
+            application/json:
+              schema:
+                $ref: "../types/subscription.schema.json"
+
+  /billing/subscription/cancel:
+    post:
+      summary: Cancel the caller's subscription at period end.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Cancellation scheduled.
+          content:
+            application/json:
+              schema:
+                $ref: "../types/subscription.schema.json"
+        "404":
+          description: No active subscription.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

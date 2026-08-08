@@ -1,0 +1,66 @@
+openapi: 3.0.3
+info:
+  title: Auth API
+  version: 1.0.0
+  description: Owned by the auth domain. Frontend and billing consume this; only auth may implement it.
+paths:
+  /auth/login:
+    post:
+      summary: Log in with email and password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [email, password]
+              properties:
+                email: { type: string, format: email }
+                password: { type: string, minLength: 8 }
+      responses:
+        "200":
+          description: Authenticated.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [accessToken, user]
+                properties:
+                  accessToken: { type: string }
+                  requiresMfa: { type: boolean }
+                  user:
+                    $ref: "../types/user.schema.json"
+        "401":
+          description: Invalid credentials.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [error]
+                properties:
+                  error: { type: string, enum: [invalid_credentials] }
+
+  /auth/session:
+    get:
+      summary: Return the caller's current session, if any.
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Active session.
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [user]
+                properties:
+                  user:
+                    $ref: "../types/user.schema.json"
+        "401":
+          description: No active session.
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer

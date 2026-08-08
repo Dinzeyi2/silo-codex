@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event:user-created",
+  "title": "user.created",
+  "description": "Emitted by auth after a new user successfully registers. Owned by auth.",
+  "type": "object",
+  "required": ["eventName", "userId", "email", "createdAt"],
+  "properties": {
+    "eventName": { "const": "user.created" },
+    "userId": { "type": "string", "format": "uuid" },
+    "email": { "type": "string", "format": "email" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

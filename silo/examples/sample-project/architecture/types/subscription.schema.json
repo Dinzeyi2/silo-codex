@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "type:subscription",
+  "title": "Subscription",
+  "description": "Shared subscription shape. Owned by database; billing writes it, frontend/intelligence read it.",
+  "type": "object",
+  "required": ["id", "userId", "planId", "status"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "userId": { "type": "string", "format": "uuid" },
+    "planId": { "type": "string" },
+    "status": { "type": "string", "enum": ["active", "past_due", "canceled"] },
+    "currentPeriodEnd": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

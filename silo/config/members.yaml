@@ -1,0 +1,23 @@
+# SILO member directory: which single specialist role each project member may invoke.
+# The API checks `member.role == requested role` before any model is called (silo/src/members.ts).
+# A member who needs a second role needs an administrator to change their assignment here —
+# it is never something a task prompt can grant itself.
+members:
+  - id: alice
+    displayName: Alice (DB)
+    role: database
+  - id: bob
+    displayName: Bob (Auth)
+    role: auth
+  - id: carol
+    displayName: Carol (Frontend)
+    role: frontend
+  - id: dave
+    displayName: Dave (Billing)
+    role: billing
+  - id: erin
+    displayName: Erin (Intelligence)
+    role: intelligence
+  - id: frank
+    displayName: Frank (Infra)
+    role: infrastructure

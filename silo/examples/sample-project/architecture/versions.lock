@@ -1,0 +1,5 @@
+version: 1.0.0
+updatedAt: "2026-08-08T00:00:00Z"
+# contentHash is informational here; SILO recomputes it at load time (registryLoader.computeRegistryHash)
+# and a deployment can compare the two to detect an out-of-band edit to the registry.
+contentHash: "sha256:regenerate-with-silo-hash-registry"
