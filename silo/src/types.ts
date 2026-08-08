@@ -65,6 +65,9 @@ export type TaskResult = {
   finalResponse: string | null;
   changedPaths: string[];
   error?: string;
+  /** Whether the merged base branch was pushed to the project's GitHub remote. Absent when there was no project to push to. */
+  pushed?: boolean;
+  pushError?: string;
 };
 
 export class RoleMismatchError extends Error {

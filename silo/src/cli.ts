@@ -3,6 +3,9 @@ import path from "node:path";
 import { loadSiloConfig } from "./pipeline.js";
 import { runTask } from "./pipeline.js";
 import { startServer } from "./server.js";
+import { startCloudServer } from "./cloudServer.js";
+import { ProjectStore } from "./projects.js";
+import { requireServiceToken } from "./serviceAuth.js";
 
 type Flags = Record<string, string>;
 
@@ -44,11 +47,19 @@ function printHelp(): void {
 Usage:
   silo run --member <id> --role <role> --prompt "<task>" [--repo <path>] [--task-id <id>]
   silo serve [--port 8787] [--repo <path>]
+  silo cloud [--port 8787]
   silo --help
 
 Config is read from <repo>/silo/config/{ownership,members,providers}.yaml and
 <repo>/architecture/ (the shared architecture registry) unless --config-dir /
---registry-dir override them.`);
+--registry-dir override them.
+
+'silo cloud' is the multi-project, hosted mode (what the Docker image runs on Railway):
+it reads SILO_SERVICE_TOKEN (>=32 URL-safe chars, required on every request as
+'Authorization: Bearer <token>'), SILO_DATA_DIR (default /data, holds cloned project
+repos + the project registry — put this on a persistent volume), and PORT. Projects are
+registered at runtime via POST /v1/projects; each owns its own repo, cloned/synced on
+demand.`);
 }
 
 async function main(): Promise<void> {
@@ -81,6 +92,17 @@ async function main(): Promise<void> {
   if (command === "serve") {
     const config = loadSiloConfig(resolveConfigPaths(flags));
     startServer(config, flags.port ? Number(flags.port) : undefined);
+    return;
+  }
+
+  if (command === "cloud") {
+    const serviceToken = requireServiceToken(process.env.SILO_SERVICE_TOKEN);
+    const dataDir = path.resolve(process.env.SILO_DATA_DIR ?? "/data");
+    const projects = new ProjectStore(path.join(dataDir, "projects.json"));
+    startCloudServer(
+      { dataDir, serviceToken, projects },
+      flags.port ? Number(flags.port) : process.env.PORT ? Number(process.env.PORT) : undefined,
+    );
     return;
   }
 

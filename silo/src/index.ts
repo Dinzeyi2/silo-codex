@@ -12,3 +12,8 @@ export * from "./mergePipeline.js";
 export * from "./codexRunner.js";
 export * from "./pipeline.js";
 export { createServer, startServer } from "./server.js";
+export * from "./projects.js";
+export * from "./repoManager.js";
+export * from "./serviceAuth.js";
+export { createCloudServer, startCloudServer } from "./cloudServer.js";
+export type { CloudServerConfig } from "./cloudServer.js";

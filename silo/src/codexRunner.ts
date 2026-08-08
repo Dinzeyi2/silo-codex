@@ -18,8 +18,20 @@ export interface CodexLike {
 
 export type CodexFactory = (options: CodexOptions) => CodexLike;
 
-/** Default factory: the real Codex SDK, talking to a real Codex CLI binary/provider. */
-export const defaultCodexFactory: CodexFactory = (options) => new Codex(options);
+/**
+ * Default factory: the real Codex SDK, talking to a real Codex CLI binary/provider.
+ *
+ * If `SILO_CODEX_BINARY_PATH` is set, it's passed through as `codexPathOverride` so the SDK
+ * spawns that binary directly instead of resolving `@openai/codex`'s npm platform package.
+ * The SILO Docker image sets this to a `codex` binary built from this repo's own `codex-rs`
+ * source (the same way `deploy/railway/Dockerfile` builds `codex-app-server`) — that keeps the
+ * binary in lockstep with this repo instead of depending on whatever's published to npm.
+ */
+export const defaultCodexFactory: CodexFactory = (options) =>
+  new Codex({
+    ...options,
+    codexPathOverride: options.codexPathOverride ?? process.env.SILO_CODEX_BINARY_PATH,
+  });
 
 export type RunSpecialistTaskParams = {
   role: Role;
