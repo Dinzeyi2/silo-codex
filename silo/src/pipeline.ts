@@ -11,8 +11,10 @@ import { createTaskWorktree, removeTaskWorktree } from "./worktreeManager.js";
 import { runSpecialistTask } from "./codexRunner.js";
 import type { CodexFactory } from "./codexRunner.js";
 import { commitValidateAndMerge } from "./mergePipeline.js";
+import { ensureProjectRepo, pushBaseBranch } from "./repoManager.js";
 import { RegistryValidationError } from "./types.js";
 import type { OwnershipConfig, ProvidersConfig, TaskRequest, TaskResult } from "./types.js";
+import type { Project } from "./projects.js";
 
 export type SiloConfig = {
   integrationRepoPath: string;
@@ -24,6 +26,8 @@ export type SiloConfig = {
   members: MemberDirectory;
   providers: ProvidersConfig;
   codexFactory?: CodexFactory;
+  /** Set when this repo is a registered SILO project — enables pushing a clean merge to GitHub. */
+  project?: Project;
 };
 
 export type LoadSiloConfigOptions = {
@@ -35,6 +39,7 @@ export type LoadSiloConfigOptions = {
   worktreesRoot?: string;
   baseBranch?: string;
   codexFactory?: CodexFactory;
+  project?: Project;
 };
 
 /**
@@ -63,6 +68,7 @@ export function loadSiloConfig(opts: LoadSiloConfigOptions): SiloConfig {
     members,
     providers,
     codexFactory: opts.codexFactory,
+    project: opts.project,
   };
 }
 
@@ -113,6 +119,20 @@ export async function runTask(config: SiloConfig, request: TaskRequest): Promise
     const commitMessage = `silo(${request.role}): ${request.prompt.slice(0, 72)}`;
     const integration = await commitValidateAndMerge(handle, request.role, config.ownership, commitMessage);
 
+    let pushed: boolean | undefined;
+    let pushError: string | undefined;
+    if (integration.merged && config.project) {
+      try {
+        await pushBaseBranch(config.integrationRepoPath, config.project);
+        pushed = true;
+      } catch (err) {
+        // A clean merge that fails to push is still a real, committed merge locally — surface
+        // the push failure rather than pretending the task failed outright.
+        pushed = false;
+        pushError = (err as Error).message;
+      }
+    }
+
     const result: TaskResult = {
       taskId,
       role: request.role,
@@ -123,6 +143,8 @@ export async function runTask(config: SiloConfig, request: TaskRequest): Promise
       finalResponse,
       changedPaths: integration.changedPaths,
       error,
+      pushed,
+      pushError,
     };
 
     // Keep the branch around for audit whenever it didn't merge (violation, agent error, or no-op);
@@ -134,4 +156,32 @@ export async function runTask(config: SiloConfig, request: TaskRequest): Promise
     await removeTaskWorktree(handle, false).catch(() => undefined);
     throw err;
   }
+}
+
+export type RunProjectTaskOptions = {
+  dataDir: string;
+  project: Project;
+  request: TaskRequest;
+  codexFactory?: CodexFactory;
+};
+
+/**
+ * The multi-project entry point: ensures the project's repo is cloned/synced locally, loads
+ * its `silo/config/*` + `architecture/` fresh off that checkout (so registry/ownership/member
+ * edits merged upstream take effect on the very next task, no redeploy needed), then runs the
+ * task exactly as the single-repo `runTask` does.
+ */
+export async function runProjectTask(opts: RunProjectTaskOptions): Promise<TaskResult> {
+  const repoPath = await ensureProjectRepo(opts.dataDir, opts.project);
+  const config = loadSiloConfig({
+    integrationRepoPath: repoPath,
+    ownershipPath: path.join(repoPath, "silo", "config", "ownership.yaml"),
+    membersPath: path.join(repoPath, "silo", "config", "members.yaml"),
+    providersPath: path.join(repoPath, "silo", "config", "providers.yaml"),
+    registryPath: path.join(repoPath, "architecture"),
+    baseBranch: opts.project.baseBranch,
+    codexFactory: opts.codexFactory,
+    project: opts.project,
+  });
+  return runTask(config, opts.request);
 }

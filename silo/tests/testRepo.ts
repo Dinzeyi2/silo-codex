@@ -33,3 +33,26 @@ export function createTempIntegrationRepo(): string {
 export function readTrackedFile(repoPath: string, ref: string, relPath: string): string {
   return execFileSync("git", ["show", `${ref}:${relPath}`], { cwd: repoPath, encoding: "utf8" });
 }
+
+/**
+ * Creates a local bare git repo (under `dir`) seeded with the bundled sample-project, to stand
+ * in for a project's real GitHub remote in tests. `http.extraHeader` auth (what repoManager
+ * sends on every request) is a no-op for a local path transport, so this exercises the exact
+ * same clone/fetch/reset/push plumbing a real HTTPS remote would.
+ */
+export function createBareOriginFromSampleProject(dir: string): string {
+  const seed = path.join(dir, "seed");
+  const bare = path.join(dir, "origin.git");
+  cpSync(SAMPLE_PROJECT, seed, { recursive: true });
+  const run = (args: string[], cwd: string): void => {
+    execFileSync("git", args, { cwd, stdio: "pipe" });
+  };
+  run(["init", "-q"], seed);
+  run(["config", "user.email", "silo-test@example.com"], seed);
+  run(["config", "user.name", "silo-test"], seed);
+  run(["add", "-A"], seed);
+  run(["commit", "-q", "-m", "initial import of sample-project"], seed);
+  run(["branch", "-M", "integration"], seed);
+  run(["clone", "-q", "--bare", seed, bare], dir);
+  return bare;
+}

@@ -13,7 +13,7 @@ exactly one specialist role — `database`, `auth`, `frontend`, `billing`, `inte
    a `BOUNDARY_VIOLATION` — checked against the real `git diff`, not against what the model
    claims it did.
 3. **A specialist never even sees another domain's implementation.** Each task runs in a `git`
-   worktree that's sparse-checked-out to *only* that role's owned paths, so "the model receives
+   worktree that's sparse-checked-out to _only_ that role's owned paths, so "the model receives
    only files from its domain" is a filesystem fact, not a prompt instruction.
 4. **Every specialist still shares one architectural picture.** A versioned registry under
    `architecture/` (product spec, domain map, permissions, dependencies, OpenAPI/JSON-Schema
@@ -52,26 +52,30 @@ silo/
   tests/                  unit + real-git integration tests (no network / real LLM calls required)
 ```
 
-`config/` here is a *template*. A real deployment's `silo/config/{ownership,members,providers}.yaml`
+`config/` here is a _template_. A real deployment's `silo/config/{ownership,members,providers}.yaml`
 and `architecture/` live **inside the target/product repository** SILO is orchestrating — see
 `examples/sample-project/` for what that looks like end to end.
 
 ### Source modules
 
-| Module | Responsibility |
-| --- | --- |
-| `ownership.ts` | Path → role classification and `BOUNDARY_VIOLATION` checks. Pure functions, no I/O. |
-| `registryLoader.ts` / `registryValidator.ts` | Load `architecture/*` off disk and validate it's internally consistent (no dangling contract references, valid OpenAPI/JSON-Schema, semver `versions.lock`). |
-| `members.ts` | The memberId → role directory and the `authorize()` check (`RoleMismatchError`, `UnknownMemberError`, `UnknownRoleError`). |
-| `providerConfig.ts` | Per-role AI provider routing, with `${ENV_VAR}` resolution. |
-| `worktreeManager.ts` | Creates/removes a `git worktree` per task, sparse-checked-out to the role's owned paths + `architecture/`. |
-| `promptBuilder.ts` | Builds the shared-context preamble (product spec, this role's place in it, contracts it may read) sent before the task prompt. |
-| `codexRunner.ts` | Runs one specialist turn via `@openai/codex-sdk`, scoped to the worktree, `workspace-write` sandboxed, using the role's provider. |
-| `diffValidator.ts` | Commits the worktree's changes and checks the resulting diff against ownership boundaries. |
-| `mergePipeline.ts` | Commits + validates + merges (`git merge --no-ff`) into the integration branch; serialized per repo via `asyncLock.ts`. |
-| `pipeline.ts` | Wires all of the above into `runTask()` — the end-to-end flow for one specialist task. |
-| `server.ts` | HTTP API (`POST /v1/tasks`, `GET /v1/architecture`, `GET /v1/roles`, `GET /healthz`). |
-| `cli.ts` | `silo run` / `silo serve`. |
+| Module                                       | Responsibility                                                                                                                                                                                          |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ownership.ts`                               | Path → role classification and `BOUNDARY_VIOLATION` checks. Pure functions, no I/O.                                                                                                                     |
+| `registryLoader.ts` / `registryValidator.ts` | Load `architecture/*` off disk and validate it's internally consistent (no dangling contract references, valid OpenAPI/JSON-Schema, semver `versions.lock`).                                            |
+| `members.ts`                                 | The memberId → role directory and the `authorize()` check (`RoleMismatchError`, `UnknownMemberError`, `UnknownRoleError`).                                                                              |
+| `providerConfig.ts`                          | Per-role AI provider routing, with `${ENV_VAR}` resolution.                                                                                                                                             |
+| `worktreeManager.ts`                         | Creates/removes a `git worktree` per task, sparse-checked-out to the role's owned paths + `architecture/`.                                                                                              |
+| `promptBuilder.ts`                           | Builds the shared-context preamble (product spec, this role's place in it, contracts it may read) sent before the task prompt.                                                                          |
+| `codexRunner.ts`                             | Runs one specialist turn via `@openai/codex-sdk`, scoped to the worktree, `workspace-write` sandboxed, using the role's provider.                                                                       |
+| `diffValidator.ts`                           | Commits the worktree's changes and checks the resulting diff against ownership boundaries.                                                                                                              |
+| `mergePipeline.ts`                           | Commits + validates + merges (`git merge --no-ff`) into the integration branch; serialized per repo via `asyncLock.ts`.                                                                                 |
+| `pipeline.ts`                                | Wires all of the above into `runTask()` — the end-to-end flow for one specialist task — plus `runProjectTask()` for multi-project (cloud) mode.                                                         |
+| `server.ts`                                  | Single-repo HTTP API (`POST /v1/tasks`, `GET /v1/architecture`, `GET /v1/roles`, `GET /healthz`).                                                                                                       |
+| `projects.ts`                                | File-backed multi-project registry (`ProjectStore`): id, repo URL, GitHub token, base branch.                                                                                                           |
+| `repoManager.ts`                             | Clones/syncs a project's repo onto local disk and pushes a merged base branch back to GitHub, authenticating per-request via `git.ts`'s `gitAuthed` (a token header, never persisted to `.git/config`). |
+| `serviceAuth.ts`                             | Validates `SILO_SERVICE_TOKEN` at boot and checks `Authorization: Bearer` on every cloud-mode request.                                                                                                  |
+| `cloudServer.ts`                             | Multi-project, hosted HTTP API (`POST /v1/projects`, `POST /v1/projects/:id/tasks`, …) — what `silo cloud` runs. See `DEPLOY.md`.                                                                       |
+| `cli.ts`                                     | `silo run` / `silo serve` (single repo, local/dev) and `silo cloud` (multi-project, hosted).                                                                                                            |
 
 ## Quick start
 
@@ -109,6 +113,32 @@ POST /v1/tasks                → { memberId, role, prompt, taskId? } → runs o
 violation, `403 ROLE_MISMATCH` / `404 UNKNOWN_MEMBER` / `400 UNKNOWN_ROLE` on an authorization
 failure, and `400` on a malformed request.
 
+## Cloud / hosted mode (multi-project)
+
+The above is single-repo, local/dev mode. For a hosted service your own backend calls — many
+projects, each its own GitHub repo, deployable on Railway — use `silo cloud` instead:
+
+```bash
+SILO_SERVICE_TOKEN=$(openssl rand -hex 32) SILO_DATA_DIR=./data node dist/cli.js cloud
+```
+
+Every route except `/healthz` requires `Authorization: Bearer $SILO_SERVICE_TOKEN`. Register a
+project (SILO clones it on first use and pushes a clean merge back to it):
+
+```
+POST /v1/projects          { id, name, repoUrl, githubToken, baseBranch? }
+GET  /v1/projects
+POST /v1/projects/:id/tasks       { memberId, role, prompt, taskId? }
+GET  /v1/projects/:id/architecture
+GET  /v1/projects/:id/roles
+```
+
+This is meant to be called **server-to-server from your own backend**, which has already
+authenticated the end user and knows their `memberId` — never expose `SILO_SERVICE_TOKEN` to a
+browser. See **[`DEPLOY.md`](./DEPLOY.md)** for the full Railway setup (Dockerfile path, volume,
+env vars) and `silo/deploy/Dockerfile` for how the `codex` binary is built from this repo's own
+`codex-rs/` source rather than resolved from an npm package.
+
 ## Setting SILO up for your own project
 
 1. Decide your roles and their owned path roots; write `<repo>/silo/config/ownership.yaml`.
@@ -123,7 +153,7 @@ failure, and `400` on a malformed request.
    references resolved from the process environment — never commit real keys to the YAML).
 4. Point `silo serve`/`silo run` at that repo with `--repo`.
 
-## What SILO does *not* claim
+## What SILO does _not_ claim
 
 This is boundary enforcement and contract-sharing, not a cryptographic guarantee. The product
 spec and the contracts a role is granted read access to are still sent to that role's configured
@@ -146,8 +176,14 @@ every changed path is inside that specialist's owned roots.
   `versions.lock`).
 - **Merges are serialized per repo** (`asyncLock.ts`) so concurrent tasks can't corrupt the
   integration repo's git state, but there's no cross-process/multi-replica locking — running
-  multiple `silo serve` processes against the same integration repo needs an external lock
-  (e.g. an advisory DB lock) added around `mergePipeline.ts`.
+  multiple `silo cloud`/`silo serve` processes against the same repo needs an external lock
+  (e.g. an advisory DB lock) added around `mergePipeline.ts` / `repoManager.ts`.
 - **Shared/root-level files** (lockfiles, CI config, workspace manifests) aren't modeled with a
   distinct ownership category yet — see the design notes for `integration-owned` /
   `generated-only` categories as a future addition to `ownership.ts`.
+- **Cloud mode's project store is a single JSON file** (`projects.ts`) — fine for one instance
+  backed by a persistent volume, not for multiple replicas or high write concurrency on project
+  registration itself (task execution is safe; see the DB lock note above).
+- **All projects on one `silo cloud` deployment share one process environment** for `${VAR}`
+  resolution in each project's `providers.yaml` — see DEPLOY.md for how to namespace variable
+  names per project if that's not acceptable for your setup.
