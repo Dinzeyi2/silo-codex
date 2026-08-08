@@ -1,0 +1,21 @@
+# Explicit domain -> domain dependency edges, each grounded in a contract. Used to detect
+# cycles and to explain *why* a permission grant exists.
+dependencies:
+  - from: auth
+    to: database
+    via: "type:user"
+  - from: billing
+    to: database
+    via: "type:subscription"
+  - from: billing
+    to: auth
+    via: "api:auth"
+  - from: frontend
+    to: auth
+    via: "api:auth"
+  - from: frontend
+    to: billing
+    via: "api:billing"
+  - from: intelligence
+    to: billing
+    via: "event:subscription-changed"

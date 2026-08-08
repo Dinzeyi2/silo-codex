@@ -1,0 +1,47 @@
+# SILO ownership registry: the source of truth for which paths each specialist role may
+# create or modify. Enforced by silo/src/ownership.ts before a change is accepted and again
+# before it's merged (silo/src/mergePipeline.ts) — never just left to a prompt.
+#
+# The "architecture" root is reserved automatically (see ownership.ts ARCHITECTURE_ROOT) and
+# must not be listed here: no specialist role may write to it, including roles defined below.
+#
+# Customize this file per target project — the roots below match silo/examples/sample-project.
+roles:
+  database:
+    description: Schema, migrations, and the persisted data model.
+    owns:
+      - db/
+      - migrations/
+      - schema/
+
+  auth:
+    description: Authentication, sessions, tokens, and access control.
+    owns:
+      - auth/
+      - security/
+
+  frontend:
+    description: Web and mobile user interface.
+    owns:
+      - ui/
+      - web/
+      - mobile/
+
+  billing:
+    description: Subscription plans, payment processing, and invoicing.
+    owns:
+      - billing/
+      - payments/
+
+  intelligence:
+    description: Analytics, ML, and robotics features.
+    owns:
+      - intelligence/
+      - robotics/
+      - ml/
+
+  infrastructure:
+    description: Deployment, CI/CD, and environment configuration.
+    owns:
+      - infra/
+      - deploy/

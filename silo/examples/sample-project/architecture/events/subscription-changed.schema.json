@@ -1,0 +1,16 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "event:subscription-changed",
+  "title": "subscription.changed",
+  "description": "Emitted by billing whenever a subscription's status or plan changes. Owned by billing.",
+  "type": "object",
+  "required": ["eventName", "userId", "subscriptionId", "status"],
+  "properties": {
+    "eventName": { "const": "subscription.changed" },
+    "userId": { "type": "string", "format": "uuid" },
+    "subscriptionId": { "type": "string", "format": "uuid" },
+    "status": { "type": "string", "enum": ["active", "past_due", "canceled"] },
+    "planId": { "type": "string" }
+  },
+  "additionalProperties": false
+}
