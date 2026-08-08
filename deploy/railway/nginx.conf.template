@@ -1,0 +1,47 @@
+worker_processes auto;
+pid /tmp/nginx.pid;
+
+events {
+    worker_connections 1024;
+}
+
+http {
+    access_log /dev/stdout;
+    error_log /dev/stderr info;
+
+    map $http_upgrade $connection_upgrade {
+        default upgrade;
+        '' close;
+    }
+
+    server {
+        listen __PORT__;
+        server_name _;
+
+        location = /healthz {
+            access_log off;
+            default_type application/json;
+            return 200 '{"status":"ok"}';
+        }
+
+        location = / {
+            default_type application/json;
+            return 200 '{"service":"codex-app-server","transport":"websocket","endpoint":"/ws"}';
+        }
+
+        location /ws {
+            if ($http_authorization != "Bearer __CLOUD_TOKEN__") {
+                return 401;
+            }
+
+            proxy_pass http://127.0.0.1:4500;
+            proxy_http_version 1.1;
+            proxy_set_header Upgrade $http_upgrade;
+            proxy_set_header Connection $connection_upgrade;
+            proxy_set_header Host $host;
+            proxy_read_timeout 3600s;
+            proxy_send_timeout 3600s;
+            proxy_buffering off;
+        }
+    }
+}
