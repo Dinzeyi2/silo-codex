@@ -30,6 +30,12 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends git ca-certificates \
     && rm -rf /var/lib/apt/lists/*
 
+# pnpm's git fetcher clones github: deps over SSH (git@github.com:...) by default, which needs
+# SSH keys this build container will never have. Rewrite SSH-form GitHub URLs to HTTPS so the
+# (public) dependency clones anonymously instead — no credentials required.
+RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
+    && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /build
