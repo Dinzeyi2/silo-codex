@@ -1,0 +1,19 @@
+# Per-service Railway config for the SILO cloud service, kept separate from the repo-root
+# railway.toml (which belongs to the unrelated codex-app-server service in deploy/railway/).
+#
+# Railway's "config-as-code" reads a railway.toml/railway.json from the repo and lets it
+# override whatever is set in the dashboard's Build settings. Because a root-level railway.toml
+# already exists for the other service, the @openai/silo service must be pointed at THIS file
+# explicitly — in the Railway dashboard, on the @openai/silo service:
+#   Settings → Config-as-code → Config File Path → silo/railway.toml
+# Without that, Railway silently keeps building deploy/railway/Dockerfile instead of this one,
+# no matter what the Build settings fields show.
+[build]
+builder = "DOCKERFILE"
+dockerfilePath = "silo/deploy/Dockerfile"
+
+[deploy]
+healthcheckPath = "/healthz"
+healthcheckTimeout = 300
+restartPolicyType = "ON_FAILURE"
+restartPolicyMaxRetries = 10
