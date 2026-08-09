@@ -8,7 +8,22 @@ backend. It is a **separate Railway service** from the existing `codex-app-serve
 
 In the Railway dashboard: **New Service → Deploy from GitHub repo** → pick this repo.
 
-In that service's **Settings → Build**:
+**Critical step, easy to miss:** this repo already has a `railway.toml` at its root (for the
+unrelated `codex-app-server` service in `deploy/railway/`). Railway's "config-as-code" makes that
+root file **override anything you type in the dashboard's Build settings**, for *every* service
+in the repo, unless a service is explicitly pointed at a different config file. Skipping this
+step is why the build silently keeps using `deploy/railway/Dockerfile` no matter what you set
+Dockerfile Path to in the UI.
+
+On the `@openai/silo` service, go to **Settings → Config-as-code** and set:
+
+- **Config File Path** → `silo/railway.toml`
+
+That file (checked into this repo) sets Builder=Dockerfile and Dockerfile Path correctly for
+SILO specifically. Do this *before* checking the Build section below — otherwise the Build
+section's fields are cosmetic and get overridden anyway.
+
+Then in that service's **Settings → Build** (should now match `silo/railway.toml`, but confirm):
 
 - **Builder**: Dockerfile
 - **Dockerfile Path**: `silo/deploy/Dockerfile`
