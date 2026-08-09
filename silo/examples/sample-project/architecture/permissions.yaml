@@ -1,0 +1,31 @@
+# Read grants beyond a domain's own `exposes` list in domains.yaml. This is what lets, e.g.,
+# the frontend agent read the auth and billing API contracts without ever seeing their
+# implementation files.
+permissions:
+  auth:
+    canRead:
+      - "type:user"
+
+  billing:
+    canRead:
+      - "type:user"
+      - "type:subscription"
+      - "api:auth"
+
+  frontend:
+    canRead:
+      - "api:auth"
+      - "api:billing"
+      - "type:user"
+      - "type:subscription"
+
+  intelligence:
+    canRead:
+      - "type:user"
+      - "type:subscription"
+      - "event:subscription-changed"
+
+  infrastructure:
+    canRead:
+      - "api:auth"
+      - "api:billing"

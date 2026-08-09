@@ -78,4 +78,12 @@ You can also use Codex with an API key, but this requires [additional setup](htt
 - [**Installing & building**](./docs/install.md)
 - [**Open source fund**](./docs/open-source-fund.md)
 
+## SILO
+
+This fork adds [**SILO**](./silo/README.md): a role-scoped multi-agent orchestrator built on
+Codex. It restricts each specialist role (database, auth, frontend, billing, intelligence,
+infrastructure, ...) to its own owned files, enforces that boundary against the real `git diff`
+rather than a prompt instruction, and shares a versioned architecture registry across roles so
+they connect through agreed contracts instead of inventing incompatible ones.
+
 This repository is licensed under the [Apache-2.0 License](LICENSE).

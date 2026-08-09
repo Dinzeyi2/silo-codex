@@ -1,0 +1,15 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "type:user",
+  "title": "User",
+  "description": "Shared user shape. Owned by database; auth, billing, frontend, and intelligence read it.",
+  "type": "object",
+  "required": ["id", "email", "createdAt"],
+  "properties": {
+    "id": { "type": "string", "format": "uuid" },
+    "email": { "type": "string", "format": "email" },
+    "displayName": { "type": "string" },
+    "createdAt": { "type": "string", "format": "date-time" }
+  },
+  "additionalProperties": false
+}

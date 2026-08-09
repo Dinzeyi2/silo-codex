@@ -1,0 +1,21 @@
+name: Acme Subscriptions
+description: >
+  A SaaS product where users sign up, subscribe to a paid plan, and manage their
+  account. Built by SILO specialist agents: each domain below is owned by one
+  specialist, and they connect only through the contracts in this registry.
+users:
+  - End users who sign up and manage a subscription.
+  - Admins who manage plans and refunds.
+workflows:
+  - Sign up / log in (auth)
+  - Browse and manage a paid plan (billing)
+  - View and edit account data (database, frontend)
+  - Basic usage analytics (intelligence)
+compliance:
+  - Passwords and tokens are never stored in plaintext.
+  - Payment card data is never persisted directly (billing owns PCI-scoped storage).
+techStack:
+  frontend: React + TypeScript
+  backend: Node.js
+  database: PostgreSQL
+deployment: Railway
