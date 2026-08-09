@@ -1,0 +1,28 @@
+{
+  "projectRoot": "/data/workspace/project",
+  "integrationBranch": "silo/integration",
+  "integrationChecks": [["git", "diff", "--check", "HEAD^", "HEAD"]],
+  "adminTokenHash": "REPLACE_WITH_SHA256_OF_ADMIN_TOKEN",
+  "maxTaskBytes": 32768,
+  "maxArchitectureBytes": 32768,
+  "jobTimeoutSeconds": 1800,
+  "maxConcurrentJobs": 2,
+  "users": {
+    "database-user": {
+      "role": "database",
+      "tokenHash": "REPLACE_WITH_SHA256_OF_USER_TOKEN"
+    }
+  },
+  "roles": {
+    "database": {
+      "writableRoots": ["db", "migrations", "schema"],
+      "modelProvider": "openai",
+      "model": "gpt-5.2-codex"
+    },
+    "auth": { "writableRoots": ["auth", "security"] },
+    "frontend": { "writableRoots": ["ui", "web", "mobile"] },
+    "infrastructure": { "writableRoots": ["infrastructure", "deploy"] },
+    "intelligence": { "writableRoots": ["intelligence", "robotics", "ml"] },
+    "billing": { "writableRoots": ["billing", "payments"] }
+  }
+}

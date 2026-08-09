@@ -1,0 +1,36 @@
+{
+  "version": "1.0.0",
+  "product": {
+    "name": "Example product",
+    "purpose": "Replace this with the approved whole-product specification"
+  },
+  "contracts": {
+    "apis": [
+      {
+        "id": "auth.login",
+        "version": "1.0.0",
+        "owner": "auth",
+        "definition": {
+          "method": "POST",
+          "path": "/v1/login",
+          "requestType": "auth.LoginRequest",
+          "responseType": "auth.LoginResponse"
+        }
+      }
+    ],
+    "events": [],
+    "types": [
+      {
+        "id": "auth.LoginRequest",
+        "version": "1.0.0",
+        "owner": "auth",
+        "definition": {
+          "type": "object",
+          "required": ["email", "password"]
+        }
+      }
+    ],
+    "permissions": []
+  },
+  "dependencies": []
+}

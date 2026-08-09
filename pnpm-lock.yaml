@@ -37,7 +37,7 @@ importers:
   sdk/typescript:
     devDependencies:
       '@modelcontextprotocol/conformance':
-        specifier: github:modelcontextprotocol/conformance#49103de6ed70804e940637bf3e9e29e4a3f54e64
+        specifier: https://codeload.github.com/modelcontextprotocol/conformance/tar.gz/49103de6ed70804e940637bf3e9e29e4a3f54e64
         version: https://codeload.github.com/modelcontextprotocol/conformance/tar.gz/49103de6ed70804e940637bf3e9e29e4a3f54e64
       '@modelcontextprotocol/sdk':
         specifier: 1.26.0

@@ -8,40 +8,36 @@ events {
 http {
     access_log /dev/stdout;
     error_log /dev/stderr info;
-
-    map $http_upgrade $connection_upgrade {
-        default upgrade;
-        '' close;
-    }
+    limit_req_zone $binary_remote_addr zone=silo_api:10m rate=10r/s;
+    limit_req_status 429;
 
     server {
         listen __PORT__;
         server_name _;
+        add_header Strict-Transport-Security "max-age=31536000" always;
+        add_header X-Frame-Options DENY always;
+        add_header Referrer-Policy no-referrer always;
 
         location = /healthz {
             access_log off;
-            default_type application/json;
-            return 200 '{"status":"ok"}';
+            proxy_pass http://127.0.0.1:4600/healthz;
         }
 
         location = / {
             default_type application/json;
-            return 200 '{"service":"codex-app-server","transport":"websocket","endpoint":"/ws"}';
+            return 200 '{"service":"silo","api":"/api/v1"}';
         }
 
-        location /ws {
-            if ($http_authorization != "Bearer __CLOUD_TOKEN__") {
-                return 401;
-            }
-
-            proxy_pass http://127.0.0.1:4500;
+        location /api/ {
+            limit_req zone=silo_api burst=20 nodelay;
+            proxy_pass http://127.0.0.1:4600/;
             proxy_http_version 1.1;
-            proxy_set_header Upgrade $http_upgrade;
-            proxy_set_header Connection $connection_upgrade;
             proxy_set_header Host $host;
-            proxy_read_timeout 3600s;
-            proxy_send_timeout 3600s;
-            proxy_buffering off;
+            proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+            proxy_set_header X-Forwarded-Proto $scheme;
+            proxy_read_timeout 60s;
+            proxy_send_timeout 60s;
+            client_max_body_size 40k;
         }
     }
 }
