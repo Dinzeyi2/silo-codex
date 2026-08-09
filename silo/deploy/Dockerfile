@@ -18,7 +18,13 @@ RUN apt-get update \
 
 WORKDIR /src/codex-rs
 COPY codex-rs/ ./
-RUN cargo build --locked --release -p codex-cli --bin codex
+# -j 4: this workspace has ~100+ dependencies and release builds use LTO, which is memory-hungry
+# per parallel codegen unit — a build dying silently partway through with no visible compiler
+# error (as opposed to a real compile failure) is the classic signature of the OOM killer on a
+# resource-constrained CI builder, not a code problem. CARGO_NET_RETRY guards the other plausible
+# cause: a dropped connection during the initial crate-download burst.
+ENV CARGO_NET_RETRY=10
+RUN cargo build --locked --release -p codex-cli --bin codex -j 4
 
 # ---- Stage 2: build the SILO Node/TypeScript app ------------------------------------------
 FROM node:22-bookworm-slim AS silo-builder
