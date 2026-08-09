@@ -23,6 +23,13 @@ RUN cargo build --locked --release -p codex-cli --bin codex
 # ---- Stage 2: build the SILO Node/TypeScript app ------------------------------------------
 FROM node:22-bookworm-slim AS silo-builder
 
+# git is required here, not just in the runtime stage: sdk/typescript's devDependencies include
+# a `github:...` package, which pnpm fetches via a git subprocess during install. Missing this
+# fails with "pnpm: not found: git" — easy to miss testing locally where git is already on PATH.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
 WORKDIR /build
