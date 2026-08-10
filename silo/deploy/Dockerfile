@@ -39,8 +39,15 @@ RUN apt-get update \
 # pnpm's git fetcher clones github: deps over SSH (git@github.com:...) by default, which needs
 # SSH keys this build container will never have. Rewrite SSH-form GitHub URLs to HTTPS so the
 # (public) dependency clones anonymously instead — no credentials required.
-RUN git config --global url."https://github.com/".insteadOf "git@github.com:" \
-    && git config --global url."https://github.com/".insteadOf "ssh://git@github.com/"
+#
+# Both rules use the same config key (url."https://github.com/".insteadOf) with different
+# values. `git config` without --add REPLACES an existing value for that key rather than adding
+# a second one, so writing this as two plain `git config` calls silently drops the first rule —
+# only the ssh:// form was ever registered, and the literal `git@github.com:` scp-style form
+# (what pnpm actually passed to git) was never rewritten at all. Confirmed by inspecting the
+# resulting .gitconfig directly: without --add it contained only one insteadOf line, not two.
+RUN git config --global --add url."https://github.com/".insteadOf "git@github.com:" \
+    && git config --global --add url."https://github.com/".insteadOf "ssh://git@github.com/"
 
 RUN corepack enable && corepack prepare pnpm@10.33.0 --activate
 
